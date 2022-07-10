@@ -1,3 +1,3 @@
 # DrawAndGuess
  
-* [API文档](https://www.apifox.cn/apidoc/shared-1a583b95-7140-43de-b660-f7b2d8b6740c)
+* [API文档](https://www.apifox.cn/apidoc/shared-e71bc878-4c58-465f-9cf5-9d8d556b114f)
