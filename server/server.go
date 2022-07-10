@@ -18,11 +18,12 @@ func NewServer() *Server {
 }
 
 func (s *Server) routes() {
-	s.HandleFunc("/users", s.listOnlineUsers()).Methods("GET")                        //Added
-	s.HandleFunc("/users/{name}", s.newUserLogin()).Methods("POST")                   //Added
-	s.HandleFunc("/users/{id}", s.getUser()).Methods("GET")                           //Added
-	s.HandleFunc("/users", s.userLogout()).Methods("DELETE")                          //Added
-	s.HandleFunc("/games", s.listGames()).Methods("GET")                              //Added
+	s.HandleFunc("/users", s.listOnlineUsers()).Methods("GET")      //Added
+	s.HandleFunc("/users/{name}", s.newUserLogin()).Methods("POST") //Added
+	s.HandleFunc("/users/{id}", s.getUser()).Methods("GET")         //Added
+	s.HandleFunc("/users", s.userLogout()).Methods("DELETE")        //Added
+	s.HandleFunc("/games", s.listGames()).Methods("GET")            //Added
+	s.HandleFunc("/games/{gameId}", s.getGame()).Methods("GET")
 	s.HandleFunc("/games/{gameId}/players", s.listPlayersInGame()).Methods("GET")     //Added
 	s.HandleFunc("/games/{gameId}/lines", s.getLinesInGame()).Methods("GET")          //Added
 	s.HandleFunc("/games/{gameId}/lines", s.appendNewLineInGame()).Methods("POST")    //Added
@@ -101,6 +102,30 @@ func (s *Server) listGames() http.HandlerFunc {
 			return
 		}
 	}
+}
+
+func (s *Server) getGame() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gameIdStr := mux.Vars(r)["gameId"]
+		gameUUID, err := uuid.Parse(gameIdStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		g, err := s.gameSet.findGameById(gameUUID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err = json.NewEncoder(w).Encode(g); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
 }
 
 func (s *Server) listPlayersInGame() http.HandlerFunc {
