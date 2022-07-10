@@ -19,17 +19,18 @@ func NewServer() *Server {
 }
 
 func (s *Server) routes() {
-	s.HandleFunc("/users", s.listOnlineUsers()).Methods("GET")                     //Added
-	s.HandleFunc("/users/{name}", s.newUserLogin()).Methods("POST")                //Added
-	s.HandleFunc("/users", s.userLogout()).Methods("DELETE")                       //Added
-	s.HandleFunc("/games", s.listGames()).Methods("GET")                           //Added
-	s.HandleFunc("/games/{gameId}/players", s.listPlayersInGame()).Methods("GET")  //Added
-	s.HandleFunc("/games/{gameId}/lines", s.getLinesInGame()).Methods("GET")       //Added
-	s.HandleFunc("/games/{gameId}/lines", s.appendNewLineInGame()).Methods("POST") //Added
-	s.HandleFunc("/games/{gameId}/join", s.userJoinGame()).Methods("POST")         //Added
-	s.HandleFunc("/games/{gameId}/messages", s.listMessagesInGame()).Methods("GET")
-	s.HandleFunc("/games/{gameId}/messages", s.appendMessageInGame()).Methods("POST")
-	s.HandleFunc("/games/create", s.newGame()).Methods("POST") //Added
+	s.HandleFunc("/users", s.listOnlineUsers()).Methods("GET")      //Added
+	s.HandleFunc("/users/{name}", s.newUserLogin()).Methods("POST") //Added
+	s.HandleFunc("/users/{name}", s.getUser()).Methods("GET")
+	s.HandleFunc("/users", s.userLogout()).Methods("DELETE")                          //Added
+	s.HandleFunc("/games", s.listGames()).Methods("GET")                              //Added
+	s.HandleFunc("/games/{gameId}/players", s.listPlayersInGame()).Methods("GET")     //Added
+	s.HandleFunc("/games/{gameId}/lines", s.getLinesInGame()).Methods("GET")          //Added
+	s.HandleFunc("/games/{gameId}/lines", s.appendNewLineInGame()).Methods("POST")    //Added
+	s.HandleFunc("/games/{gameId}/join", s.userJoinGame()).Methods("POST")            //Added
+	s.HandleFunc("/games/{gameId}/messages", s.listMessagesInGame()).Methods("GET")   //Added
+	s.HandleFunc("/games/{gameId}/messages", s.appendMessageInGame()).Methods("POST") //Added
+	s.HandleFunc("/games/create", s.newGame()).Methods("POST")                        //Added
 }
 
 func (s *Server) ListenAndServe(port string) {
@@ -64,6 +65,29 @@ func (s *Server) newUserLogin() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(u); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (s *Server) getUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := mux.Vars(r)["name"]
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		u, err := s.userSet.findUserById(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err = json.NewEncoder(w).Encode(u); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
@@ -287,6 +311,13 @@ func (s *Server) appendMessageInGame() http.HandlerFunc {
 			return
 		}
 
+		u, err := s.userSet.findUserById(m.From.UserId)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		m.From = u
 		g.Messages = append(g.Messages, m)
 
 		w.Header().Set("Content-Type", "application/json")

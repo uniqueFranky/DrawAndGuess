@@ -45,7 +45,7 @@ type GameCreationBatch struct {
 }
 
 type Message struct {
-	From    User    `json:"from"`
+	From    *User   `json:"from"`
 	Content MyBytes `json:"content"`
 }
 
