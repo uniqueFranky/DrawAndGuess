@@ -27,7 +27,9 @@ func (s *Server) routes() {
 	s.HandleFunc("/games/{gameId}/lines", s.getLinesInGame()).Methods("GET")       //Added
 	s.HandleFunc("/games/{gameId}/lines", s.appendNewLineInGame()).Methods("POST") //Added
 	s.HandleFunc("/games/{gameId}/join", s.userJoinGame()).Methods("POST")         //Added
-	s.HandleFunc("/games/create", s.newGame()).Methods("POST")                     //Added
+	s.HandleFunc("/games/{gameId}/messages", s.listMessagesInGame()).Methods("GET")
+	s.HandleFunc("/games/{gameId}/messages", s.appendMessageInGame()).Methods("POST")
+	s.HandleFunc("/games/create", s.newGame()).Methods("POST") //Added
 }
 
 func (s *Server) ListenAndServe(port string) {
@@ -239,4 +241,60 @@ func (s *Server) userJoinGame() http.HandlerFunc {
 			return
 		}
 	}
+}
+
+func (s *Server) listMessagesInGame() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gameIdStr := mux.Vars(r)["gameId"]
+		gameUUID, err := uuid.Parse(gameIdStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		g, err := s.gameSet.findGameById(gameUUID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err = json.NewEncoder(w).Encode(g.Messages); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (s *Server) appendMessageInGame() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gameIdStr := mux.Vars(r)["gameId"]
+		gameUUID, err := uuid.Parse(gameIdStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		g, err := s.gameSet.findGameById(gameUUID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var m Message
+		err = json.NewDecoder(r.Body).Decode(&m)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		g.Messages = append(g.Messages, m)
+
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(g.Messages)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
 }

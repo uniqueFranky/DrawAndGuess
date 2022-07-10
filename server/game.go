@@ -20,9 +20,10 @@ func NewGame(u *User, ans []byte) *Game {
 		PlayerSet: UserSet{
 			users: []*User{u},
 		},
-		Drawer: u,
-		Lines:  []Line{},
-		Answer: ans,
+		Drawer:   u,
+		Lines:    []Line{},
+		Answer:   ans,
+		Messages: []Message{},
 	}
 	return g
 }

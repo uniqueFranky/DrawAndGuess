@@ -23,6 +23,7 @@ type Game struct {
 	Drawer    *User     `json:"drawer"`
 	Lines     []Line    `json:"lines"`
 	Answer    MyBytes   `json:"answer"`
+	Messages  []Message `json:"messages"`
 }
 
 type GameSet struct {
@@ -41,6 +42,11 @@ type Line struct {
 type GameCreationBatch struct {
 	User   User   `json:"user"`
 	Answer []byte `json:"answer"`
+}
+
+type Message struct {
+	From    User    `json:"from"`
+	Content MyBytes `json:"content"`
 }
 
 type Server struct {

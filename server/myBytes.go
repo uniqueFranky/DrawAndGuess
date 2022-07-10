@@ -12,6 +12,6 @@ func (mb *MyBytes) MarshalJSON() ([]byte, error) {
 	} else {
 		array = strings.Join(strings.Fields(fmt.Sprintf("%d", *mb)), ",")
 	}
-	jsonResult := fmt.Sprintf(`{"Array":%s}`, array)
+	jsonResult := fmt.Sprintf(`%s`, array)
 	return []byte(jsonResult), nil
 }
