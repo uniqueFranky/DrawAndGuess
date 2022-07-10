@@ -14,7 +14,7 @@ func (g *Game) appendLine(newLine Line) {
 	g.Lines = append(g.Lines, newLine)
 }
 
-func NewGame(u *User, ans []byte) *Game {
+func NewGame(u *User, ans string) *Game {
 	g := &Game{
 		Id: uuid.New(),
 		PlayerSet: UserSet{

@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"google/uuid"
 	"gorilla/mux"
 	"net/http"
@@ -30,7 +29,7 @@ func (s *Server) routes() {
 	s.HandleFunc("/games/{gameId}/join", s.userJoinGame()).Methods("POST")            //Added
 	s.HandleFunc("/games/{gameId}/messages", s.listMessagesInGame()).Methods("GET")   //Added
 	s.HandleFunc("/games/{gameId}/messages", s.appendMessageInGame()).Methods("POST") //Added
-	s.HandleFunc("/games/create", s.newGame()).Methods("POST")                        //Added
+	s.HandleFunc("/games/create/{answer}", s.newGame()).Methods("POST")               //Added
 }
 
 func (s *Server) ListenAndServe(port string) {
@@ -179,23 +178,24 @@ func (s *Server) appendNewLineInGame() http.HandlerFunc {
 
 func (s *Server) newGame() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var batch GameCreationBatch
-		if err := json.NewDecoder(r.Body).Decode(&batch); err != nil {
+		var u User
+		if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		user, err := s.userSet.findUserById(batch.User.UserId)
+
+		ans := mux.Vars(r)["answer"]
+		user, err := s.userSet.findUserById(u.UserId)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		g := NewGame(user, batch.Answer)
+		g := NewGame(user, ans)
 		user.GameId = g.Id
 		if err = s.gameSet.appendGame(g); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Println(string(g.Answer))
 		w.Header().Set("Content-Type", "application/json")
 		if err = json.NewEncoder(w).Encode(g); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

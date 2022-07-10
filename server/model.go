@@ -5,8 +5,6 @@ import (
 	"gorilla/mux"
 )
 
-type MyBytes []byte
-
 type User struct {
 	UserName string    `json:"userName"`
 	UserId   uuid.UUID `json:"userId"`
@@ -22,7 +20,7 @@ type Game struct {
 	PlayerSet UserSet   `json:"playerSet"`
 	Drawer    *User     `json:"drawer"`
 	Lines     []Line    `json:"lines"`
-	Answer    MyBytes   `json:"answer"`
+	Answer    string    `json:"answer"`
 	Messages  []Message `json:"messages"`
 }
 
@@ -39,14 +37,9 @@ type Line struct {
 	Points []RelativePoint `json:"points"`
 }
 
-type GameCreationBatch struct {
-	User   User   `json:"user"`
-	Answer []byte `json:"answer"`
-}
-
 type Message struct {
-	From    *User   `json:"from"`
-	Content MyBytes `json:"content"`
+	From    *User  `json:"from"`
+	Content string `json:"content"`
 }
 
 type Server struct {
