@@ -18,14 +18,15 @@ func NewServer() *Server {
 }
 
 func (s *Server) routes() {
-	s.HandleFunc("/users", s.listOnlineUsers()).Methods("GET")      //Added
-	s.HandleFunc("/users/{name}", s.newUserLogin()).Methods("POST") //Added
-	s.HandleFunc("/users/{name}", s.getUser()).Methods("GET")
+	s.HandleFunc("/users", s.listOnlineUsers()).Methods("GET")                        //Added
+	s.HandleFunc("/users/{name}", s.newUserLogin()).Methods("POST")                   //Added
+	s.HandleFunc("/users/{id}", s.getUser()).Methods("GET")                           //Added
 	s.HandleFunc("/users", s.userLogout()).Methods("DELETE")                          //Added
 	s.HandleFunc("/games", s.listGames()).Methods("GET")                              //Added
 	s.HandleFunc("/games/{gameId}/players", s.listPlayersInGame()).Methods("GET")     //Added
 	s.HandleFunc("/games/{gameId}/lines", s.getLinesInGame()).Methods("GET")          //Added
 	s.HandleFunc("/games/{gameId}/lines", s.appendNewLineInGame()).Methods("POST")    //Added
+	s.HandleFunc("/games/{gameId}/lines", s.setLinesInGame()).Methods("PUT")          //Added
 	s.HandleFunc("/games/{gameId}/join", s.userJoinGame()).Methods("POST")            //Added
 	s.HandleFunc("/games/{gameId}/messages", s.listMessagesInGame()).Methods("GET")   //Added
 	s.HandleFunc("/games/{gameId}/messages", s.appendMessageInGame()).Methods("POST") //Added
@@ -71,7 +72,7 @@ func (s *Server) newUserLogin() http.HandlerFunc {
 
 func (s *Server) getUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := mux.Vars(r)["name"]
+		idStr := mux.Vars(r)["id"]
 		id, err := uuid.Parse(idStr)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -327,5 +328,35 @@ func (s *Server) appendMessageInGame() http.HandlerFunc {
 			return
 		}
 	}
+}
 
+func (s *Server) setLinesInGame() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gameIdStr := mux.Vars(r)["gameId"]
+		gameUUID, err := uuid.Parse(gameIdStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		g, err := s.gameSet.findGameById(gameUUID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var lines []Line
+		err = json.NewDecoder(r.Body).Decode(&lines)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		g.Lines = lines
+		w.Header().Set("Content-Type", "application/json")
+		if err = json.NewEncoder(w).Encode(g.Lines); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
 }
