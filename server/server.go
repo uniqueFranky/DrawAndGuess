@@ -18,17 +18,18 @@ func NewServer() *Server {
 }
 
 func (s *Server) routes() {
-	s.HandleFunc("/users", s.listOnlineUsers()).Methods("GET")      //Added
-	s.HandleFunc("/users/{name}", s.newUserLogin()).Methods("POST") //Added
-	s.HandleFunc("/users/{id}", s.getUser()).Methods("GET")         //Added
-	s.HandleFunc("/users", s.userLogout()).Methods("DELETE")        //Added
-	s.HandleFunc("/games", s.listGames()).Methods("GET")            //Added
-	s.HandleFunc("/games/{gameId}", s.getGame()).Methods("GET")
+	s.HandleFunc("/users", s.listOnlineUsers()).Methods("GET")                        //Added
+	s.HandleFunc("/users/{name}", s.newUserLogin()).Methods("POST")                   //Added
+	s.HandleFunc("/users/{id}", s.getUser()).Methods("GET")                           //Added
+	s.HandleFunc("/users", s.userLogout()).Methods("DELETE")                          //Added
+	s.HandleFunc("/games", s.listGames()).Methods("GET")                              //Added
+	s.HandleFunc("/games/{gameId}", s.getGame()).Methods("GET")                       //Added
 	s.HandleFunc("/games/{gameId}/players", s.listPlayersInGame()).Methods("GET")     //Added
 	s.HandleFunc("/games/{gameId}/lines", s.getLinesInGame()).Methods("GET")          //Added
 	s.HandleFunc("/games/{gameId}/lines", s.appendNewLineInGame()).Methods("POST")    //Added
 	s.HandleFunc("/games/{gameId}/lines", s.setLinesInGame()).Methods("PUT")          //Added
 	s.HandleFunc("/games/{gameId}/join", s.userJoinGame()).Methods("POST")            //Added
+	s.HandleFunc("/games/{gameId}/leave", s.userLeaveGame()).Methods("DELETE")        //Added
 	s.HandleFunc("/games/{gameId}/messages", s.listMessagesInGame()).Methods("GET")   //Added
 	s.HandleFunc("/games/{gameId}/messages", s.appendMessageInGame()).Methods("POST") //Added
 	s.HandleFunc("/games/create/{answer}", s.newGame()).Methods("POST")               //Added
@@ -96,6 +97,7 @@ func (s *Server) getUser() http.HandlerFunc {
 
 func (s *Server) listGames() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		s.gameSet.deleteEndedGame()
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(s.gameSet.games); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -287,6 +289,48 @@ func (s *Server) userJoinGame() http.HandlerFunc {
 		user.GameId = gameUUID
 
 		if err = json.NewEncoder(w).Encode(g); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (s *Server) userLeaveGame() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gameIdStr := mux.Vars(r)["gameId"]
+		gameUUID, err := uuid.Parse(gameIdStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		g, err := s.gameSet.findGameById(gameUUID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var u User
+		if err = json.NewDecoder(r.Body).Decode(&u); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		user, err := g.PlayerSet.findUserById(u.UserId)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err = g.deletePlayerWithId(user.UserId); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		user.GameId = uuid.Nil
+
+		w.Header().Set("Content-Type", "application/json")
+		if err = json.NewEncoder(w).Encode(user); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

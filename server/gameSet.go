@@ -35,3 +35,20 @@ func (gs *GameSet) deletePlayerInGame(u *User) {
 	}
 	_ = g.deletePlayerWithId(u.UserId)
 }
+
+func (gs *GameSet) deleteEndedGame() {
+	for ; true; {
+		found := false
+		for i, g := range gs.games {
+			if g.HasEnded == true {
+				found = true
+				gs.games = append(gs.games[:i], gs.games[i+1:]...)
+				break
+			}
+		}
+		if found == false {
+			break
+		}
+	}
+
+}

@@ -7,7 +7,14 @@ func (g *Game) appendPlayer(u *User) error {
 }
 
 func (g *Game) deletePlayerWithId(id uuid.UUID) error {
-	return g.PlayerSet.deleteUserById(id)
+	err := g.PlayerSet.deleteUserById(id)
+	if err != nil {
+		return err
+	}
+	if len(g.PlayerSet.users) == 0 {
+		g.HasEnded = true
+	}
+	return nil
 }
 
 func (g *Game) appendLine(newLine Line) {
@@ -24,6 +31,7 @@ func NewGame(u *User, ans string) *Game {
 		Lines:    []Line{},
 		Answer:   ans,
 		Messages: []Message{},
+		HasEnded: false,
 	}
 	return g
 }

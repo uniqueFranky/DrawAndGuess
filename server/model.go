@@ -22,6 +22,7 @@ type Game struct {
 	Lines     []Line    `json:"lines"`
 	Answer    string    `json:"answer"`
 	Messages  []Message `json:"messages"`
+	HasEnded  bool      `json:"hasEnded"`
 }
 
 type GameSet struct {
