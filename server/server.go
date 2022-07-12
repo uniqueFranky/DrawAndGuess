@@ -1,6 +1,7 @@
 package server
 
 import (
+	"DrawAndGuess/identity"
 	"encoding/json"
 	"google/uuid"
 	"gorilla/mux"
@@ -22,14 +23,15 @@ func (s *Server) routes() {
 	//s.HandleFunc("/users/{name}", s.newUserLogin()).Methods("POST") //Added
 	//s.HandleFunc("/users/{name}", s.getUser()).Methods("GET")
 	//s.HandleFunc("/users", s.userLogout()).Methods("DELETE")                          //Added
-	//s.HandleFunc("/games", s.listGames()).Methods("GET")                              //Added
-	//s.HandleFunc("/games/{gameId}/players", s.listPlayersInGame()).Methods("GET")     //Added
-	//s.HandleFunc("/games/{gameId}/lines", s.getLinesInGame()).Methods("GET")          //Added
-	//s.HandleFunc("/games/{gameId}/lines", s.appendNewLineInGame()).Methods("POST")    //Added
-	//s.HandleFunc("/games/{gameId}/join", s.userJoinGame()).Methods("POST")            //Added
-	//s.HandleFunc("/games/{gameId}/messages", s.listMessagesInGame()).Methods("GET")   //Added
-	//s.HandleFunc("/games/{gameId}/messages", s.appendMessageInGame()).Methods("POST") //Added
-	//s.HandleFunc("/games/create/{answer}", s.newGame()).Methods("POST")               //Added
+	s.HandleFunc("/games", s.listGames()).Methods("GET")                              //Added
+	s.HandleFunc("/games/{gameId}/players", s.listPlayersInGame()).Methods("GET")     //Added
+	s.HandleFunc("/games/{gameId}/lines", s.getLinesInGame()).Methods("GET")          //Added
+	s.HandleFunc("/games/{gameId}/lines", s.appendNewLineInGame()).Methods("POST")    //Added
+	s.HandleFunc("/games/{gameId}/lines", s.setLinesInGame()).Methods("PUT")          //Added
+	s.HandleFunc("/games/{gameId}/join", s.userJoinGame()).Methods("POST")            //Added
+	s.HandleFunc("/games/{gameId}/messages", s.listMessagesInGame()).Methods("GET")   //Added
+	s.HandleFunc("/games/{gameId}/messages", s.appendMessageInGame()).Methods("POST") //Added
+	s.HandleFunc("/games/create/{answer}", s.newGame()).Methods("POST")               //Added
 
 	s.HandleFunc("/users/reg/{name}/{psw}", s.newUserRegister()).Methods("POST")
 	s.HandleFunc("/users/login/{name}/{psw}", s.newUserLogin()).Methods("POST")
@@ -108,12 +110,9 @@ func (s *Server) userLogout() http.HandlerFunc {
 			return
 		}
 		u, err := s.userSet.findUserById(id)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		if u.UserName != name {
-			http.Error(w, "username and uuid dismatch", http.StatusBadRequest)
+		ok, err := identity.IsIdValid(name, id)
+		if false == ok || err != nil {
+			http.Error(w, "unmatched id and username", http.StatusBadRequest)
 			return
 		}
 		err = s.userSet.deleteUserById(id)
@@ -178,7 +177,7 @@ func (s *Server) listPlayersInGame() http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err = json.NewEncoder(w).Encode(g.PlayerSet.users); err != nil {
+		if err = json.NewEncoder(w).Encode(g.PlayerSet.getUserNames()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -216,8 +215,8 @@ func (s *Server) appendNewLineInGame() http.HandlerFunc {
 			return
 		}
 
-		var newLine Line
-		if err = json.NewDecoder(r.Body).Decode(&newLine); err != nil {
+		var lwu LineWithUser
+		if err = json.NewDecoder(r.Body).Decode(&lwu); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -227,8 +226,69 @@ func (s *Server) appendNewLineInGame() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		u := lwu.From
+		ok, err := identity.IsIdValid(u.UserName, u.UserId)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if ok != true {
+			http.Error(w, "unmatched username and id", http.StatusBadRequest)
+			return
+		}
+
+		if g.DrawerName != u.UserName {
+			http.Error(w, "you are not the drawer of the game", http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
-		g.appendLine(newLine)
+		g.appendLine(lwu.NewLine)
+		if err = json.NewEncoder(w).Encode(g.Lines); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (s *Server) setLinesInGame() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gameIdStr := mux.Vars(r)["gameId"]
+		gameUUID, err := uuid.Parse(gameIdStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var lswu LinesWithUser
+		if err = json.NewDecoder(r.Body).Decode(&lswu); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		g, err := s.gameSet.findGameById(gameUUID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		u := lswu.From
+		ok, err := identity.IsIdValid(u.UserName, u.UserId)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if ok != true {
+			http.Error(w, "unmatched username and id", http.StatusBadRequest)
+			return
+		}
+
+		if g.DrawerName != u.UserName {
+			http.Error(w, "you are not the drawer of the game", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		g.Lines = lswu.NewLines
 		if err = json.NewEncoder(w).Encode(g.Lines); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -243,7 +303,15 @@ func (s *Server) newGame() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
+		ok, err := identity.IsIdValid(u.UserName, u.UserId)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if ok != true {
+			http.Error(w, "unmatched username and id", http.StatusBadRequest)
+			return
+		}
 		ans := mux.Vars(r)["answer"]
 		user, err := s.userSet.findUserById(u.UserId)
 		if err != nil {
@@ -251,7 +319,7 @@ func (s *Server) newGame() http.HandlerFunc {
 			return
 		}
 		g := NewGame(user, ans)
-		//user.GameId = g.Id
+		user.GameId = g.Id
 		if err = s.gameSet.appendGame(g); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -290,13 +358,20 @@ func (s *Server) userJoinGame() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
+		ok, err := identity.IsIdValid(user.UserName, user.UserId)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if ok != true {
+			http.Error(w, "unmatch username and uuid", http.StatusBadRequest)
+			return
+		}
 		if err = g.appendPlayer(user); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		//user.GameId = gameUUID
-
+		user.GameId = gameUUID
 		if err = json.NewEncoder(w).Encode(g); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -341,7 +416,7 @@ func (s *Server) appendMessageInGame() http.HandlerFunc {
 			return
 		}
 
-		var m Message
+		var m MessageWithUser
 		err = json.NewDecoder(r.Body).Decode(&m)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -353,9 +428,20 @@ func (s *Server) appendMessageInGame() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
-		m.From = u
-		g.Messages = append(g.Messages, m)
+		ok, err := identity.IsIdValid(u.UserName, u.UserId)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if ok != true {
+			http.Error(w, "unmatched username and id", http.StatusBadRequest)
+			return
+		}
+		message := Message{
+			From:    u.UserName,
+			Content: m.Content,
+		}
+		g.Messages = append(g.Messages, message)
 
 		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(g.Messages)

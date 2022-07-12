@@ -16,6 +16,24 @@ func (us *UserSet) findUserByIdStr(idStr string) (*User, error) {
 	return us.findUserById(id)
 }
 
+func (us *UserSet) findUserByName(name string) (*User, error) {
+	for _, u := range us.users {
+		if u.UserName == name {
+			return u, nil
+		}
+	}
+	return nil, errors.New("no matching user for name: " + name)
+}
+
+func (us *UserSet) findUserIndexByName(name string) (int, error) {
+	for i, u := range us.users {
+		if u.UserName == name {
+			return i, nil
+		}
+	}
+	return -1, errors.New("no matching user for name: " + name)
+}
+
 func (us *UserSet) findUserById(id uuid.UUID) (*User, error) {
 	for _, u := range us.users {
 		if u.UserId == id {
@@ -120,8 +138,9 @@ func (us *UserSet) userLogin(name string, psw string) (uuid.UUID, error) {
 }
 
 func (us *UserSet) getUserNames() []string {
-	names := make([]string, len(us.users))
+	var names []string
 	for _, u := range us.users {
+		fmt.Println(u.UserName)
 		names = append(names, u.UserName)
 	}
 	return names

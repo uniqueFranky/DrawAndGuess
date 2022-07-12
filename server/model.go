@@ -8,6 +8,7 @@ import (
 type User struct {
 	UserName string    `json:"userName"`
 	UserId   uuid.UUID `json:"userId"`
+	GameId   uuid.UUID `json:"-"`
 }
 
 type UserSet struct {
@@ -15,12 +16,12 @@ type UserSet struct {
 }
 
 type Game struct {
-	Id        uuid.UUID `json:"id"`
-	PlayerSet UserSet   `json:"playerSet"`
-	Drawer    *User     `json:"drawer"`
-	Lines     []Line    `json:"lines"`
-	Answer    string    `json:"answer"`
-	Messages  []Message `json:"messages"`
+	Id         uuid.UUID `json:"id"`
+	PlayerSet  UserSet   `json:"-"`
+	DrawerName string    `json:"drawerName"`
+	Lines      []Line    `json:"lines"`
+	Answer     string    `json:"answer"`
+	Messages   []Message `json:"messages"`
 }
 
 type GameSet struct {
@@ -36,7 +37,22 @@ type Line struct {
 	Points []RelativePoint `json:"points"`
 }
 
+type LineWithUser struct {
+	NewLine Line `json:"newLine"`
+	From    User `json:"from"`
+}
+
+type LinesWithUser struct {
+	NewLines []Line `json:"newLines"`
+	From     User   `json:"from"`
+}
+
 type Message struct {
+	From    string `json:"from"`
+	Content string `json:"content"`
+}
+
+type MessageWithUser struct {
 	From    *User  `json:"from"`
 	Content string `json:"content"`
 }
