@@ -10,7 +10,7 @@ import (
 func NewServer() *Server {
 	server := Server{
 		Router:  mux.NewRouter(),
-		userSet: UserSet{users: []*User{}, userNames: []string{}},
+		userSet: UserSet{users: []*User{}},
 		gameSet: GameSet{games: []*Game{}},
 	}
 	server.routes()
@@ -91,7 +91,7 @@ func (s *Server) newUserLogin() http.HandlerFunc {
 func (s *Server) listOnlineUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(s.userSet.userNames); err != nil {
+		if err := json.NewEncoder(w).Encode(s.userSet.getUserNames()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

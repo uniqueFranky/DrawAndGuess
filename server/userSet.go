@@ -40,7 +40,6 @@ func (us *UserSet) deleteUserById(id uuid.UUID) error {
 		return err
 	}
 	us.users = append(us.users[:index], us.users[index+1:]...)
-	us.userNames = append(us.userNames[:index], us.userNames[index+1:]...)
 	return nil
 }
 
@@ -49,7 +48,6 @@ func (us *UserSet) appendUser(u *User) error {
 		return errors.New("User with Uuid: " + u.UserId.String() + " Already Exists")
 	}
 	us.users = append(us.users, u)
-	us.userNames = append(us.userNames, u.UserName)
 	return nil
 }
 
@@ -59,7 +57,6 @@ func (us *UserSet) deleteUser(u *User) {
 		return
 	}
 	us.users = append(us.users[:index], us.users[index+1:]...)
-	us.userNames = append(us.userNames[:index], us.userNames[index+1:]...)
 }
 
 func (us *UserSet) userReg(name string, psw string) (uuid.UUID, error) {
@@ -120,4 +117,12 @@ func (us *UserSet) userLogin(name string, psw string) (uuid.UUID, error) {
 	} else {
 		return uuid.Nil, errors.New("username or password is incorrect")
 	}
+}
+
+func (us *UserSet) getUserNames() []string {
+	names := make([]string, len(us.users))
+	for _, u := range us.users {
+		names = append(names, u.UserName)
+	}
+	return names
 }

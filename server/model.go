@@ -11,8 +11,7 @@ type User struct {
 }
 
 type UserSet struct {
-	users     []*User
-	userNames []string
+	users []*User
 }
 
 type Game struct {
