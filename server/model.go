@@ -8,11 +8,11 @@ import (
 type User struct {
 	UserName string    `json:"userName"`
 	UserId   uuid.UUID `json:"userId"`
-	GameId   uuid.UUID `json:"gameId"`
 }
 
 type UserSet struct {
-	users []*User
+	users     []*User
+	userNames []string
 }
 
 type Game struct {

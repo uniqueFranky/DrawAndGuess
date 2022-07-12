@@ -27,11 +27,11 @@ func (gs *GameSet) appendGame(g *Game) error {
 	return nil
 }
 
-func (gs *GameSet) deletePlayerInGame(u *User) {
-	gameId := u.GameId
-	g, err := gs.findGameById(gameId)
-	if err != nil {
-		return
-	}
-	_ = g.deletePlayerWithId(u.UserId)
-}
+//func (gs *GameSet) deletePlayerInGame(u *User) {
+//	gameId := u.GameId
+//	g, err := gs.findGameById(gameId)
+//	if err != nil {
+//		return
+//	}
+//	_ = g.deletePlayerWithId(u.UserId)
+//}
