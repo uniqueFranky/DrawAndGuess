@@ -2,6 +2,7 @@ package server
 
 import (
 	"DrawAndGuess/identity"
+	"DrawAndGuess/storage"
 	"DrawAndGuess/user"
 	"encoding/json"
 	"google/uuid"
@@ -121,6 +122,28 @@ func (s *Server) getUser() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		if err = json.NewEncoder(w).Encode(u); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+}
+
+func (s *Server) hasReg() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := mux.Vars(r)["name"]
+		rows, err := storage.NewQuery("select name from users where name = '" + name + "';")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		if rows.Next() {
+			_, err = w.Write([]byte("Y"))
+		} else {
+			_, err = w.Write([]byte("N"))
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
