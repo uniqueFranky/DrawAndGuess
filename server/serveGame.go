@@ -8,6 +8,7 @@ import (
 	"google/uuid"
 	"gorilla/mux"
 	"net/http"
+	"os"
 )
 
 func (s *Server) listGames() http.HandlerFunc {
@@ -403,5 +404,28 @@ func (s *Server) getGame() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+	}
+}
+
+func (s *Server) listVocabs() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		content, err := os.ReadFile("output.txt")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		var vocs []string
+		err = json.Unmarshal(content, &vocs)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if _, err = w.Write(content); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		//fmt.Println(vocs)
 	}
 }

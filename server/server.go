@@ -46,6 +46,8 @@ func (s *Server) routes() {
 	s.HandleFunc("/users/logout/{name}/{id}", s.userLogout()).Methods("DELETE")
 	s.HandleFunc("/users/list", s.listOnlineUsers()).Methods("GET")
 	s.HandleFunc("/users/hasreg/{name}", s.hasReg()).Methods("GET")
+
+	s.HandleFunc("/vocabs", s.listVocabs()).Methods("GET")
 }
 
 func (s *Server) ListenAndServe(port string) {

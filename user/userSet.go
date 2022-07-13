@@ -87,6 +87,7 @@ func (us *UserSet) UserReg(name string, psw string) (uuid.UUID, error) {
 		fmt.Println("During query")
 		return uuid.Nil, err
 	}
+	defer rows.Close()
 
 	if rows.Next() {
 		return uuid.Nil, errors.New("User with name " + name + " already exists.")
@@ -113,6 +114,7 @@ func (us *UserSet) UserLogin(name string, psw string) (uuid.UUID, error) {
 		if err != nil {
 			return uuid.Nil, err
 		}
+		defer rows.Close()
 		if rows.Next() {
 			var idStr string
 			err = rows.Scan(&idStr)

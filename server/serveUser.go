@@ -141,6 +141,7 @@ func (s *Server) hasReg() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		defer rows.Close()
 
 		w.Header().Set("Content-Type", "text/plain")
 		if rows.Next() {

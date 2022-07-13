@@ -9,6 +9,9 @@ var db *sql.DB
 func Init() error {
 	var err error
 	db, err = sql.Open("mysql", name+":"+psw+"@/"+dbname)
+	if err == nil {
+		db.SetMaxOpenConns(10000)
+	}
 	return err
 }
 

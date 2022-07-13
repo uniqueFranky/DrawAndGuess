@@ -14,6 +14,7 @@ func IsUserAuthorised(name string, psw string) (bool, error) {
 		fmt.Println("During query")
 		return false, err
 	}
+	defer rows.Close()
 	if rows.Next() {
 		var realPsw string
 		err = rows.Scan(&realPsw)
@@ -36,6 +37,7 @@ func IsIdStrValid(name string, idStr string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
 	if rows.Next() {
 		var realIdStr string
 		err = rows.Scan(&realIdStr)
