@@ -1,4 +1,4 @@
-package server
+package user
 
 import (
 	"DrawAndGuess/identity"
@@ -8,16 +8,20 @@ import (
 )
 import "errors"
 
+type UserSet struct {
+	Users []*User
+}
+
 func (us *UserSet) findUserByIdStr(idStr string) (*User, error) {
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return nil, err
 	}
-	return us.findUserById(id)
+	return us.FindUserById(id)
 }
 
 func (us *UserSet) findUserByName(name string) (*User, error) {
-	for _, u := range us.users {
+	for _, u := range us.Users {
 		if u.UserName == name {
 			return u, nil
 		}
@@ -26,7 +30,7 @@ func (us *UserSet) findUserByName(name string) (*User, error) {
 }
 
 func (us *UserSet) findUserIndexByName(name string) (int, error) {
-	for i, u := range us.users {
+	for i, u := range us.Users {
 		if u.UserName == name {
 			return i, nil
 		}
@@ -34,8 +38,8 @@ func (us *UserSet) findUserIndexByName(name string) (int, error) {
 	return -1, errors.New("no matching user for name: " + name)
 }
 
-func (us *UserSet) findUserById(id uuid.UUID) (*User, error) {
-	for _, u := range us.users {
+func (us *UserSet) FindUserById(id uuid.UUID) (*User, error) {
+	for _, u := range us.Users {
 		if u.UserId == id {
 			return u, nil
 		}
@@ -44,7 +48,7 @@ func (us *UserSet) findUserById(id uuid.UUID) (*User, error) {
 }
 
 func (us *UserSet) findUserIndexById(id uuid.UUID) (int, error) {
-	for i, u := range us.users {
+	for i, u := range us.Users {
 		if u.UserId == id {
 			return i, nil
 		}
@@ -52,20 +56,20 @@ func (us *UserSet) findUserIndexById(id uuid.UUID) (int, error) {
 	return -1, errors.New("User Not Found for Uuid: " + id.String())
 }
 
-func (us *UserSet) deleteUserById(id uuid.UUID) error {
+func (us *UserSet) DeleteUserById(id uuid.UUID) error {
 	index, err := us.findUserIndexById(id)
 	if err != nil {
 		return err
 	}
-	us.users = append(us.users[:index], us.users[index+1:]...)
+	us.Users = append(us.Users[:index], us.Users[index+1:]...)
 	return nil
 }
 
-func (us *UserSet) appendUser(u *User) error {
-	if _, err := us.findUserById(u.UserId); err == nil {
+func (us *UserSet) AppendUser(u *User) error {
+	if _, err := us.FindUserById(u.UserId); err == nil {
 		return errors.New("User with Uuid: " + u.UserId.String() + " Already Exists")
 	}
-	us.users = append(us.users, u)
+	us.Users = append(us.Users, u)
 	return nil
 }
 
@@ -74,10 +78,10 @@ func (us *UserSet) deleteUser(u *User) {
 	if err != nil {
 		return
 	}
-	us.users = append(us.users[:index], us.users[index+1:]...)
+	us.Users = append(us.Users[:index], us.Users[index+1:]...)
 }
 
-func (us *UserSet) userReg(name string, psw string) (uuid.UUID, error) {
+func (us *UserSet) UserReg(name string, psw string) (uuid.UUID, error) {
 	rows, err := storage.NewQuery("select name from users where name = '" + name + "';")
 	if err != nil {
 		fmt.Println("During query")
@@ -97,7 +101,7 @@ func (us *UserSet) userReg(name string, psw string) (uuid.UUID, error) {
 	return id, nil
 }
 
-func (us *UserSet) userLogin(name string, psw string) (uuid.UUID, error) {
+func (us *UserSet) UserLogin(name string, psw string) (uuid.UUID, error) {
 	ok, err := identity.IsUserAuthorised(name, psw)
 	if err != nil {
 		return uuid.Nil, err
@@ -120,7 +124,7 @@ func (us *UserSet) userLogin(name string, psw string) (uuid.UUID, error) {
 			if err != nil {
 				return uuid.Nil, err
 			}
-			err = us.appendUser(&User{
+			err = us.AppendUser(&User{
 				UserName: name,
 				UserId:   id,
 			})
@@ -137,9 +141,9 @@ func (us *UserSet) userLogin(name string, psw string) (uuid.UUID, error) {
 	}
 }
 
-func (us *UserSet) getUserNames() []string {
-	var names []string
-	for _, u := range us.users {
+func (us *UserSet) GetUserNames() []string {
+	names := []string{}
+	for _, u := range us.Users {
 		fmt.Println(u.UserName)
 		names = append(names, u.UserName)
 	}
