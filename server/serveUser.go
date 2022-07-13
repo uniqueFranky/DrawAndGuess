@@ -74,6 +74,11 @@ func (s *Server) userLogout() http.HandlerFunc {
 			return
 		}
 		u, err := s.userSet.FindUserById(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		ok, err := identity.IsIdValid(name, id)
 		if false == ok || err != nil {
 			http.Error(w, "unmatched id and username", http.StatusBadRequest)
@@ -84,16 +89,17 @@ func (s *Server) userLogout() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
-		g, err := s.allGameSet.FindGameInCurrentGamesById(u.GameId)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = g.DeletePlayerWithId(u.UserId)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if u.GameId != uuid.Nil {
+			g, err := s.allGameSet.FindGameInCurrentGamesById(u.GameId)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			err = g.DeletePlayerWithId(u.UserId)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
